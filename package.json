@@ -7,7 +7,8 @@
     "LICENSE",
     "README.md",
     "src",
-    "lib"
+    "lib",
+    "utils.js"
   ],
   "scripts": {
     "build": "babel src --out-dir lib",

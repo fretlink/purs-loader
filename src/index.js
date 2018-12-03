@@ -217,6 +217,14 @@ module.exports = function purescriptLoader(source, map) {
               this.addDependency(resolved);
             }
           }
+
+          if (typeof this.extractPursDependenciesFromError === 'function') {
+            const dependencies = this.extractPursDependenciesFromError(error) || [];
+
+            for (const dep of dependencies) {
+              this.addDependency(dep);
+            }
+          }
         }
 
         CACHE_VAR.errors.push(pscMessage);

@@ -1,5 +1,16 @@
 const path = require('path');
 
+exports.PscError = class PscError extends Error {
+  constructor(message, modules) {
+    super(message);
+    this.modules = modules;
+  }
+
+  static get name() {
+    return 'PscError';
+  }
+};
+
 const repeat = (value, times) =>
   times <= 0 ? [] : [value, ...repeat(value, times - 1)];
 const diffPursModuleNames = (from, target, parts) => {

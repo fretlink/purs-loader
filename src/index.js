@@ -238,7 +238,7 @@ module.exports = function purescriptLoader(source, map) {
           modules.push(desc);
         }
 
-        CACHE_VAR.errors.push(Object.assign(new Error(pscMessage), { modules }));
+        CACHE_VAR.errors.push(new utils.PscError(pscMessage, modules));
       }
     }
   }

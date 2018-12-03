@@ -225,12 +225,14 @@ module.exports = function purescriptLoader(source, map) {
             filename: baseModulePath
           };
 
-          if (typeof this.extractPursDependenciesFromError === 'function') {
-            const dependencies = this.extractPursDependenciesFromError(error) || [];
+          if (typeof this.describePscError === 'function') {
+            const { dependencies = [], details } = this.describePscError(error, desc);
 
             for (const dep of dependencies) {
               this.addDependency(dep);
             }
+
+            Object.assign(desc, details);
           }
 
           modules.push(desc);

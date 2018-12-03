@@ -26,6 +26,8 @@ const sourceMaps = require('./source-maps');
 
 const dargs = require('./dargs');
 
+const utils = require('./utils');
+
 const spawn = require('cross-spawn').sync
 
 const eol = require('os').EOL
@@ -186,9 +188,38 @@ module.exports = function purescriptLoader(source, map) {
         CACHE_VAR.warnings.push(warning);
       }
     },
-    emitError: error => {
-      if (error.length) {
-        CACHE_VAR.errors.push(error);
+    emitError: pscMessage => {
+      if (pscMessage.length) {
+        const matchErrorsSeparator = /\n(?=Error)/;
+        const errors = pscMessage.split(matchErrorsSeparator);
+        for (const error of errors) {
+          const matchErrLocation = /at (.+\.purs) line (\d+), column (\d+) - line (\d+), column (\d+)/;
+          const [, filename] = matchErrLocation.exec(error) || [];
+          if (!filename) continue;
+
+          const baseModulePath = path.join(this.rootContext, filename);
+          this.addDependency(baseModulePath);
+
+          const matchErrModuleName = /in module ((?:\w+\.)*\w+)/;
+          const [, baseModuleName] = matchErrModuleName.exec(error) || [];
+          if (!baseModuleName) continue;
+
+          const matchMissingModuleName = /Module ((?:\w+\.)*\w+) was not found/;
+          const matchMissingImportFromModuleName = /Cannot import value \w+ from module ((?:\w+\.)*\w+)/;
+          for (const re of [matchMissingModuleName, matchMissingImportFromModuleName]) {
+            const [, targetModuleName] = re.exec(error) || [];
+            if (targetModuleName) {
+              const resolved = utils.resolvePursModule({
+                baseModulePath,
+                baseModuleName,
+                targetModuleName
+              });
+              this.addDependency(resolved);
+            }
+          }
+        }
+
+        CACHE_VAR.errors.push(pscMessage);
       }
     }
   }

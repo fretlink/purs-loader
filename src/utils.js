@@ -4,6 +4,7 @@ exports.PscError = class PscError extends Error {
   constructor(message, modules) {
     super(message);
     this.modules = modules;
+    this.isPscError = true;
   }
 
   static get name() {

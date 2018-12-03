@@ -190,6 +190,8 @@ module.exports = function purescriptLoader(source, map) {
     },
     emitError: pscMessage => {
       if (pscMessage.length) {
+        const modules = [];
+
         const matchErrorsSeparator = /\n(?=Error)/;
         const errors = pscMessage.split(matchErrorsSeparator);
         for (const error of errors) {
@@ -218,6 +220,11 @@ module.exports = function purescriptLoader(source, map) {
             }
           }
 
+          const desc = {
+            name: baseModuleName,
+            filename: baseModulePath
+          };
+
           if (typeof this.extractPursDependenciesFromError === 'function') {
             const dependencies = this.extractPursDependenciesFromError(error) || [];
 
@@ -225,9 +232,11 @@ module.exports = function purescriptLoader(source, map) {
               this.addDependency(dep);
             }
           }
+
+          modules.push(desc);
         }
 
-        CACHE_VAR.errors.push(pscMessage);
+        CACHE_VAR.errors.push(Object.assign(new Error(pscMessage), { modules }));
       }
     }
   }

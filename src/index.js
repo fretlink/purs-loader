@@ -26,6 +26,8 @@ const sourceMaps = require('./source-maps');
 
 const dargs = require('./dargs');
 
+const utils = require('./utils');
+
 const spawn = require('cross-spawn').sync
 
 const eol = require('os').EOL
@@ -40,6 +42,7 @@ var CACHE_VAR = {
   errors: [],
   compilationStarted: false,
   compilationFinished: false,
+  compilationFailed: false,
   installed: false,
   srcOption: []
 };
@@ -147,6 +150,7 @@ module.exports = function purescriptLoader(source, map) {
         errors: [],
         compilationStarted: false,
         compilationFinished: false,
+        compilationFailed: false,
         installed: CACHE_VAR.installed,
         srcOption: []
       };
@@ -184,9 +188,57 @@ module.exports = function purescriptLoader(source, map) {
         CACHE_VAR.warnings.push(warning);
       }
     },
-    emitError: error => {
-      if (error.length) {
-        CACHE_VAR.errors.push(error);
+    emitError: pscMessage => {
+      if (pscMessage.length) {
+        const modules = [];
+
+        const matchErrorsSeparator = /\n(?=Error)/;
+        const errors = pscMessage.split(matchErrorsSeparator);
+        for (const error of errors) {
+          const matchErrLocation = /at (.+\.purs) line (\d+), column (\d+) - line (\d+), column (\d+)/;
+          const [, filename] = matchErrLocation.exec(error) || [];
+          if (!filename) continue;
+
+          const baseModulePath = path.join(this.rootContext, filename);
+          this.addDependency(baseModulePath);
+
+          const matchErrModuleName = /in module ((?:\w+\.)*\w+)/;
+          const [, baseModuleName] = matchErrModuleName.exec(error) || [];
+          if (!baseModuleName) continue;
+
+          const matchMissingModuleName = /Module ((?:\w+\.)*\w+) was not found/;
+          const matchMissingImportFromModuleName = /Cannot import value \w+ from module ((?:\w+\.)*\w+)/;
+          for (const re of [matchMissingModuleName, matchMissingImportFromModuleName]) {
+            const [, targetModuleName] = re.exec(error) || [];
+            if (targetModuleName) {
+              const resolved = utils.resolvePursModule({
+                baseModulePath,
+                baseModuleName,
+                targetModuleName
+              });
+              this.addDependency(resolved);
+            }
+          }
+
+          const desc = {
+            name: baseModuleName,
+            filename: baseModulePath
+          };
+
+          if (typeof this.describePscError === 'function') {
+            const { dependencies = [], details } = this.describePscError(error, desc);
+
+            for (const dep of dependencies) {
+              this.addDependency(dep);
+            }
+
+            Object.assign(desc, details);
+          }
+
+          modules.push(desc);
+        }
+
+        CACHE_VAR.errors.push(new utils.PscError(pscMessage, modules));
       }
     }
   }
@@ -258,6 +310,8 @@ module.exports = function purescriptLoader(source, map) {
                 )
               )
               .catch(error => {
+                CACHE_VAR.compilationFailed = true;
+
                 CACHE_VAR.deferred[0].reject(error);
 
                 CACHE_VAR.deferred.slice(1).forEach(psModule => {
@@ -265,8 +319,9 @@ module.exports = function purescriptLoader(source, map) {
                 })
               })
             ;
-          }
-          else {
+          } else if (CACHE_VAR.compilationFailed) {
+            CACHE_VAR.deferred.pop().reject(new Error('purs-loader failed'));
+          } else {
             // The compilation has started. We must wait until it is
             // done in order to ensure the module map contains all of
             // the unknown modules.
@@ -318,6 +373,8 @@ module.exports = function purescriptLoader(source, map) {
           )
         )
         .catch(error => {
+          CACHE_VAR.compilationFailed = true;
+
           CACHE_VAR.deferred[0].reject(error);
 
           CACHE_VAR.deferred.slice(1).forEach(psModule => {
@@ -325,8 +382,9 @@ module.exports = function purescriptLoader(source, map) {
           })
         })
       ;
-    }
-    else {
+    } else if (CACHE_VAR.compilationFailed) {
+      CACHE_VAR.deferred.pop().reject(new Error('purs-loader failed'));
+    } else {
       // The complation has started. Nothing to do but wait until it is
       // done before loading all of the modules.
     }

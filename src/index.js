@@ -40,6 +40,7 @@ var CACHE_VAR = {
   errors: [],
   compilationStarted: false,
   compilationFinished: false,
+  compilationFailed: false,
   installed: false,
   srcOption: []
 };
@@ -147,6 +148,7 @@ module.exports = function purescriptLoader(source, map) {
         errors: [],
         compilationStarted: false,
         compilationFinished: false,
+        compilationFailed: false,
         installed: CACHE_VAR.installed,
         srcOption: []
       };
@@ -258,6 +260,8 @@ module.exports = function purescriptLoader(source, map) {
                 )
               )
               .catch(error => {
+                CACHE_VAR.compilationFailed = true;
+
                 CACHE_VAR.deferred[0].reject(error);
 
                 CACHE_VAR.deferred.slice(1).forEach(psModule => {
@@ -265,8 +269,9 @@ module.exports = function purescriptLoader(source, map) {
                 })
               })
             ;
-          }
-          else {
+          } else if (CACHE_VAR.compilationFailed) {
+            CACHE_VAR.deferred.pop().reject(new Error('purs-loader failed'));
+          } else {
             // The compilation has started. We must wait until it is
             // done in order to ensure the module map contains all of
             // the unknown modules.
@@ -318,6 +323,8 @@ module.exports = function purescriptLoader(source, map) {
           )
         )
         .catch(error => {
+          CACHE_VAR.compilationFailed = true;
+
           CACHE_VAR.deferred[0].reject(error);
 
           CACHE_VAR.deferred.slice(1).forEach(psModule => {
@@ -325,8 +332,9 @@ module.exports = function purescriptLoader(source, map) {
           })
         })
       ;
-    }
-    else {
+    } else if (CACHE_VAR.compilationFailed) {
+      CACHE_VAR.deferred.pop().reject(new Error('purs-loader failed'));
+    } else {
       // The complation has started. Nothing to do but wait until it is
       // done before loading all of the modules.
     }

@@ -195,7 +195,7 @@ module.exports = function purescriptLoader(source, map) {
         const matchErrorsSeparator = /\n(?=Error)/;
         const errors = pscMessage.split(matchErrorsSeparator);
         for (const error of errors) {
-          const matchErrLocation = /at (.+\.purs) line (\d+), column (\d+) - line (\d+), column (\d+)/;
+          const matchErrLocation = /at (.+\.purs):(\d+):(\d+) - (\d+):(\d+) \(line \2, column \3 - line \4, column \5\)/;
           const [, filename] = matchErrLocation.exec(error) || [];
           if (!filename) continue;
 

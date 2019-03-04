@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/ethul/purs-loader.git"
+    "url": "git://github.com/fretlink/purs-loader.git"
   },
   "keywords": [
     "loader",
@@ -32,9 +32,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ethul/purs-loader/issues"
+    "url": "https://github.com/fretlink/purs-loader/issues"
   },
-  "homepage": "https://github.com/ethul/purs-loader#readme",
+  "homepage": "https://github.com/fretlink/purs-loader#readme",
   "dependencies": {
     "bluebird": "^3.3.5",
     "chalk": "^1.1.3",

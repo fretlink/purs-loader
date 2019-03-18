@@ -202,6 +202,19 @@ module.exports = function purescriptLoader(source, map) {
           const baseModulePath = path.join(this.rootContext, filename);
           this.addDependency(baseModulePath);
 
+          const foreignModulesErrorCodes = [
+            'ErrorParsingFFIModule',
+            'MissingFFIImplementations',
+            'UnusedFFIImplementations',
+            'MissingFFIModule'
+          ];
+          for (const code of foreignModulesErrorCodes) {
+            if (error.includes(code)) {
+              const resolved = utils.resolveForeignModule(baseModulePath);
+              this.addDependency(resolved);
+            }
+          }
+
           const matchErrModuleName = /in module ((?:\w+\.)*\w+)/;
           const [, baseModuleName] = matchErrModuleName.exec(error) || [];
           if (!baseModuleName) continue;

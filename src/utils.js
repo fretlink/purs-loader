@@ -33,3 +33,7 @@ exports.resolvePursModule = ({ baseModulePath, baseModuleName, targetModuleName 
       `${path.join(...parts)}.purs`)
     : baseModulePath;
 };
+
+exports.resolveForeignModule = pursModulePath =>
+  path.join(path.dirname(pursModulePath),
+    path.basename(pursModulePath, path.extname(pursModulePath)) + '.js');

@@ -126,7 +126,8 @@ module.exports = function purescriptLoader(source, map) {
     warnings: true,
     watch: false,
     output: 'output',
-    src: []
+    src: [],
+    rewriteRules: {}
   }, loaderOptions, {
     src: srcOption
   });
@@ -227,6 +228,7 @@ module.exports = function purescriptLoader(source, map) {
               const resolved = utils.resolvePursModule({
                 baseModulePath,
                 baseModuleName,
+                rewriteRules: options.rewriteRules,
                 targetModuleName
               });
               this.addDependency(resolved);

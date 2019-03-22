@@ -23,7 +23,25 @@ const diffPursModuleNames = (from, target, parts) => {
     ? diffPursModuleNames(tail_from, tail_target, parts)
     : parts.concat(repeat('..', from.length), target);
 };
-exports.resolvePursModule = ({ baseModulePath, baseModuleName, targetModuleName }) => {
+
+const normalizeRewriteRuleDest = ({ dest, moduleName }) =>
+  typeof dest === 'function' ? dest(moduleName) : dest;
+const rewrite = ({ rules, moduleName }) => {
+  const moduleNameParts = moduleName.split('.')
+  for (const [rule, dest] of Object.entries(rules)) {
+    const ruleParts = rule.split('.');
+    const matched = ruleParts.every((part, i) =>
+      part === '*' || part === moduleNameParts[i]);
+    if (!matched) continue;
+    const rest = moduleNameParts.slice(ruleParts.length);
+    const base = normalizeRewriteRuleDest({ dest, moduleName });
+    return `${path.join(base, ...rest)}.purs`;
+  }
+};
+
+exports.resolvePursModule = ({ baseModulePath, baseModuleName, rewriteRules, targetModuleName }) => {
+  const rewrittenModulePath = rewrite({ rules: rewriteRules, moduleName: targetModuleName });
+  if (rewrittenModulePath) return rewrittenModulePath;
   const parts = diffPursModuleNames(
     baseModuleName.split('.'),
     targetModuleName.split('.'),
